@@ -1,0 +1,66 @@
+name: Bootstrap source import
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - simple-di-source-bootstrap.zip
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out bootstrap commit
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 with Maven cache
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Expand verified source tree
+        run: |
+          mkdir -p /tmp/simple-di-import
+          unzip -q simple-di-source-bootstrap.zip -d /tmp/simple-di-import
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a /tmp/simple-di-import/. .
+          chmod +x build.sh test.sh release.sh run-example.sh run-reload-example.sh
+
+      - name: Verify Maven Central connectivity
+        run: |
+          getent ahosts repo.maven.apache.org
+          curl --fail --location --silent --show-error \
+            --retry 3 --retry-all-errors \
+            --output /dev/null \
+            --write-out 'HTTP %{http_code} remote=%{remote_ip} time=%{time_total}s\n' \
+            https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-compiler-plugin/3.14.0/maven-compiler-plugin-3.14.0.pom
+
+      - name: Build and test with Maven
+        run: mvn --batch-mode --no-transfer-progress --errors clean verify
+
+      - name: Run examples and direct JDK verification
+        run: |
+          ./run-example.sh
+          ./run-reload-example.sh
+          ./test.sh
+
+      - name: Verify module dependencies
+        run: |
+          jar --describe-module --file target/simple-di.jar
+          modules="$(jdeps --print-module-deps target/simple-di.jar)"
+          test "$modules" = "java.base,java.xml"
+
+      - name: Commit imported source tree
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "Import simple-di 2.5.0"
+          git push origin HEAD:main
