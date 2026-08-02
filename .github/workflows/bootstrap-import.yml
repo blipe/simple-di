@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - simple-di-source-bootstrap.zip
+      - .bootstrap/READY
 
 permissions:
   contents: write
@@ -12,7 +12,7 @@ permissions:
 jobs:
   import:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Check out bootstrap commit
@@ -25,10 +25,25 @@ jobs:
           java-version: '21'
           cache: maven
 
+      - name: Reconstruct and verify source archive
+        run: |
+          cat \
+            .bootstrap/payload.part00 \
+            .bootstrap/payload.part01 \
+            .bootstrap/payload.part02 \
+            .bootstrap/payload.part02b \
+            .bootstrap/payload.part03 \
+            .bootstrap/payload.part04 \
+            .bootstrap/payload.part05 \
+            .bootstrap/payload.part06 \
+            .bootstrap/payload.part07 \
+            | base64 --decode > /tmp/simple-di-source.tar.xz
+          echo '66fec535005452ebcc5bed41954747ec563694b8c68bcf13dce0d67d2705847f  /tmp/simple-di-source.tar.xz' | sha256sum --check -
+          mkdir -p /tmp/simple-di-import
+          tar -xJf /tmp/simple-di-source.tar.xz -C /tmp/simple-di-import
+
       - name: Expand verified source tree
         run: |
-          mkdir -p /tmp/simple-di-import
-          unzip -q simple-di-source-bootstrap.zip -d /tmp/simple-di-import
           find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           cp -a /tmp/simple-di-import/. .
           chmod +x build.sh test.sh release.sh run-example.sh run-reload-example.sh
@@ -55,12 +70,12 @@ jobs:
         run: |
           jar --describe-module --file target/simple-di.jar
           modules="$(jdeps --print-module-deps target/simple-di.jar)"
-          test "$modules" = "java.base,java.xml"
+          test "$modules" = 'java.base,java.xml'
 
       - name: Commit imported source tree
         run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          git commit -m "Import simple-di 2.5.0"
+          git commit -m 'Import simple-di 2.5.0'
           git push origin HEAD:main
