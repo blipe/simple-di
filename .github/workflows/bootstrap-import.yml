@@ -55,7 +55,7 @@ jobs:
           cp -a /tmp/simple-di-import/. .
           chmod +x build.sh test.sh release.sh run-example.sh run-reload-example.sh
 
-      - name: Fix Maven test compilation mode
+      - name: Fix Maven test JPMS configuration
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -64,7 +64,13 @@ jobs:
           text = text.replace('<version>3.13.0</version>', '<version>3.14.0</version>', 1)
           text = text.replace(
               '<showWarnings>true</showWarnings>',
-              '<showWarnings>true</showWarnings>\n          <testUseModulePath>false</testUseModulePath>',
+              '''<showWarnings>true</showWarnings>
+          <testCompilerArgs>
+            <arg>--add-modules</arg>
+            <arg>java.compiler</arg>
+            <arg>--add-reads</arg>
+            <arg>io.github.simpledi=java.compiler</arg>
+          </testCompilerArgs>''',
               1,
           )
           text = text.replace('<version>3.5.2</version>', '<version>3.5.3</version>', 1)
