@@ -62,17 +62,26 @@ jobs:
           pom = Path('pom.xml')
           text = pom.read_text()
           text = text.replace('<version>3.13.0</version>', '<version>3.14.0</version>', 1)
-          text = text.replace(
-              '<showWarnings>true</showWarnings>',
-              '''<showWarnings>true</showWarnings>
-          <testCompilerArgs>
-            <arg>--add-modules</arg>
-            <arg>java.compiler</arg>
-            <arg>--add-reads</arg>
-            <arg>io.github.simpledi=java.compiler</arg>
-          </testCompilerArgs>''',
-              1,
-          )
+          compiler_close = '''        </configuration>
+      </plugin>'''
+          compiler_replacement = '''        </configuration>
+        <executions>
+          <execution>
+            <id>default-testCompile</id>
+            <configuration>
+              <compilerArgs>
+                <arg>-Xlint:all</arg>
+                <arg>-Werror</arg>
+                <arg>--add-modules</arg>
+                <arg>java.compiler</arg>
+                <arg>--add-reads</arg>
+                <arg>io.github.simpledi=java.compiler</arg>
+              </compilerArgs>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>'''
+          text = text.replace(compiler_close, compiler_replacement, 1)
           text = text.replace('<version>3.5.2</version>', '<version>3.5.3</version>', 1)
           text = text.replace(
               '<failIfNoTests>false</failIfNoTests>',
