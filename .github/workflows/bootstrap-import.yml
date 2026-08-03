@@ -121,3 +121,5 @@ jobs:
           git add -A
           git commit -m 'Import simple-di 2.5.0'
           git push origin HEAD:agent/import-simple-di-2.5.0
+
+# verification retry
