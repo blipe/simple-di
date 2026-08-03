@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   import:
-    if: github.head_ref == 'agent/import-simple-di-2.5.0'
+    if: startsWith(github.head_ref, 'agent/import-simple-di')
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -19,7 +19,7 @@ jobs:
       - name: Check out import branch
         uses: actions/checkout@v4
         with:
-          ref: agent/import-simple-di-2.5.0
+          ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
       - name: Set up JDK 21
@@ -120,4 +120,4 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
           git commit -m 'Import simple-di 2.5.0'
-          git push origin HEAD:agent/import-simple-di-2.5.0
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
