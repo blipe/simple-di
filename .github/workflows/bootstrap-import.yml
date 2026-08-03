@@ -55,33 +55,13 @@ jobs:
           cp -a /tmp/simple-di-import/. .
           chmod +x build.sh test.sh release.sh run-example.sh run-reload-example.sh
 
-      - name: Fix Maven test JPMS configuration
+      - name: Fix Maven and test-only compiler module
         run: |
           python3 - <<'PY'
           from pathlib import Path
           pom = Path('pom.xml')
           text = pom.read_text()
           text = text.replace('<version>3.13.0</version>', '<version>3.14.0</version>', 1)
-          compiler_close = '''        </configuration>
-      </plugin>'''
-          compiler_replacement = '''        </configuration>
-        <executions>
-          <execution>
-            <id>default-testCompile</id>
-            <configuration>
-              <compilerArgs>
-                <arg>-Xlint:all</arg>
-                <arg>-Werror</arg>
-                <arg>--add-modules</arg>
-                <arg>java.compiler</arg>
-                <arg>--add-reads</arg>
-                <arg>io.github.simpledi=java.compiler</arg>
-              </compilerArgs>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>'''
-          text = text.replace(compiler_close, compiler_replacement, 1)
           text = text.replace('<version>3.5.2</version>', '<version>3.5.3</version>', 1)
           text = text.replace(
               '<failIfNoTests>false</failIfNoTests>',
@@ -89,6 +69,15 @@ jobs:
               1,
           )
           pom.write_text(text)
+
+          module = Path('src/main/java/module-info.java')
+          module_text = module.read_text()
+          module_text = module_text.replace(
+              'requires java.xml;',
+              'requires java.xml;\n    requires static java.compiler;',
+              1,
+          )
+          module.write_text(module_text)
           PY
 
       - name: Verify Maven Central connectivity
@@ -97,7 +86,6 @@ jobs:
           curl --fail --location --silent --show-error \
             --retry 3 --retry-all-errors \
             --output /dev/null \
-            --write-out 'HTTP %{http_code} remote=%{remote_ip} time=%{time_total}s\n' \
             https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-compiler-plugin/3.14.0/maven-compiler-plugin-3.14.0.pom
 
       - name: Build and test with Maven
