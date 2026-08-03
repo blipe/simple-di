@@ -55,6 +55,27 @@ jobs:
           cp -a /tmp/simple-di-import/. .
           chmod +x build.sh test.sh release.sh run-example.sh run-reload-example.sh
 
+      - name: Fix Maven test compilation mode
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          pom = Path('pom.xml')
+          text = pom.read_text()
+          text = text.replace('<version>3.13.0</version>', '<version>3.14.0</version>', 1)
+          text = text.replace(
+              '<showWarnings>true</showWarnings>',
+              '<showWarnings>true</showWarnings>\n          <testUseModulePath>false</testUseModulePath>',
+              1,
+          )
+          text = text.replace('<version>3.5.2</version>', '<version>3.5.3</version>', 1)
+          text = text.replace(
+              '<failIfNoTests>false</failIfNoTests>',
+              '<failIfNoTests>false</failIfNoTests>\n          <useModulePath>false</useModulePath>',
+              1,
+          )
+          pom.write_text(text)
+          PY
+
       - name: Verify Maven Central connectivity
         run: |
           getent ahosts repo.maven.apache.org
