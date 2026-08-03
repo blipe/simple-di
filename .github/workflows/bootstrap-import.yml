@@ -28,6 +28,11 @@ jobs:
           distribution: temurin
           java-version: '21'
 
+      - name: Verify source chunks
+        run: |
+          wc -c .bootstrap-v3/part-*
+          sha256sum .bootstrap-v3/part-*
+
       - name: Reconstruct and verify canonical source archive
         run: |
           cat .bootstrap-v3/part-* | base64 --decode > /tmp/simple-di-source.tar.xz
