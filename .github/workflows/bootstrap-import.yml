@@ -3,8 +3,7 @@ name: Bootstrap source import
 on:
   pull_request:
     branches: [main]
-    paths:
-      - .bootstrap/READY
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
 
 permissions:
@@ -12,6 +11,7 @@ permissions:
 
 jobs:
   import:
+    if: github.head_ref == 'agent/import-simple-di-2.5.0'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -19,7 +19,8 @@ jobs:
       - name: Check out import branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: agent/import-simple-di-2.5.0
+          fetch-depth: 0
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -27,28 +28,68 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Reconstruct and verify source archive
+      - name: Reconstruct and verify canonical source archive
         run: |
           cat \
-            .bootstrap/payload.part00 \
-            .bootstrap/payload.part01 \
-            .bootstrap/payload.part02 \
-            .bootstrap/payload.part02b \
-            .bootstrap/payload.part03 \
-            .bootstrap/payload.part04 \
-            .bootstrap/payload.part05 \
-            .bootstrap/payload.part06 \
-            .bootstrap/payload.part07 \
+            .bootstrap-v3/part-00 \
+            .bootstrap-v3/part-01 \
+            .bootstrap-v3/part-02 \
+            .bootstrap-v3/part-03a \
+            .bootstrap-v3/part-03b \
+            .bootstrap-v3/part-04 \
+            .bootstrap-v3/part-05 \
+            .bootstrap-v3/part-06 \
+            .bootstrap-v3/part-07 \
+            .bootstrap-v3/part-08 \
+            .bootstrap-v3/part-09 \
+            .bootstrap-v3/part-10 \
             | base64 --decode > /tmp/simple-di-source.tar.xz
-          echo '66fec535005452ebcc5bed41954747ec563694b8c68bcf13dce0d67d2705847f  /tmp/simple-di-source.tar.xz' | sha256sum --check -
+          echo '98148210542a66472a107d5f70f2b10a017c056a09ebf91497841833b5848885  /tmp/simple-di-source.tar.xz' | sha256sum --check -
           mkdir -p /tmp/simple-di-import
           tar -xJf /tmp/simple-di-source.tar.xz -C /tmp/simple-di-import
+          test "$(find /tmp/simple-di-import -type f | wc -l)" -eq 88
 
-      - name: Expand verified source tree
+      - name: Replace bootstrap tree with source files
         run: |
           find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           cp -a /tmp/simple-di-import/. .
           chmod +x build.sh test.sh release.sh run-example.sh run-reload-example.sh
+
+      - name: Fix Maven test JPMS configuration
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          pom = Path('pom.xml')
+          text = pom.read_text()
+          text = text.replace('<version>3.13.0</version>', '<version>3.14.0</version>', 1)
+          compiler_close = '''        </configuration>
+      </plugin>'''
+          compiler_replacement = '''        </configuration>
+        <executions>
+          <execution>
+            <id>default-testCompile</id>
+            <configuration>
+              <compilerArgs>
+                <arg>-Xlint:all</arg>
+                <arg>-Werror</arg>
+                <arg>--add-modules</arg>
+                <arg>java.compiler</arg>
+                <arg>--add-reads</arg>
+                <arg>io.github.simpledi=java.compiler</arg>
+              </compilerArgs>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>'''
+          text = text.replace(compiler_close, compiler_replacement, 1)
+          text = text.replace('<version>3.5.2</version>', '<version>3.5.3</version>', 1)
+          text = text.replace(
+              '<failIfNoTests>false</failIfNoTests>',
+              '<failIfNoTests>false</failIfNoTests>\n          <useModulePath>false</useModulePath>',
+              1,
+          )
+          pom.write_text(text)
+          PY
 
       - name: Verify Maven Central connectivity
         run: |
@@ -62,22 +103,21 @@ jobs:
       - name: Build and test with Maven
         run: mvn --batch-mode --no-transfer-progress --errors clean verify
 
+      - name: Verify Maven module artifact
+        run: |
+          jar --describe-module --file target/simple-di-2.5.0.jar
+          test "$(jdeps --print-module-deps target/simple-di-2.5.0.jar)" = 'java.base,java.xml'
+
       - name: Run examples and direct JDK verification
         run: |
+          ./test.sh
           ./run-example.sh
           ./run-reload-example.sh
-          ./test.sh
 
-      - name: Verify module dependencies
-        run: |
-          jar --describe-module --file target/simple-di.jar
-          modules="$(jdeps --print-module-deps target/simple-di.jar)"
-          test "$modules" = 'java.base,java.xml'
-
-      - name: Commit imported source tree
+      - name: Commit actual source files
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
           git commit -m 'Import simple-di 2.5.0'
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          git push origin HEAD:agent/import-simple-di-2.5.0
