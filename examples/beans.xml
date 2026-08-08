@@ -1,0 +1,18 @@
+<beans version="2">
+  <bean id="repository" class="example.Demo$Repository">
+    <constructor><arg name="url" value="${db.url:jdbc:fallback}"/></constructor>
+  </bean>
+
+  <bean id="clock" class="java.time.Clock">
+    <factory method="systemUTC" signature="()"/>
+  </bean>
+
+  <bean id="service" class="example.Demo$Service"
+        init-method="start" destroy-method="stop">
+    <constructor>
+      <arg ref="repository"/>
+      <arg ref="clock"/>
+    </constructor>
+    <property name="timeout" value="PT5S"/>
+  </bean>
+</beans>

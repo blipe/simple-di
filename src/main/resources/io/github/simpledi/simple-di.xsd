@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="unqualified">
+  <xs:element name="beans" type="beansType"/>
+
+  <xs:complexType name="beansType">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:element name="include" type="includeType"/>
+      <xs:element name="alias" type="aliasType"/>
+      <xs:element name="bean" type="beanType"/>
+    </xs:choice>
+    <xs:attribute name="version" use="optional">
+      <xs:simpleType><xs:restriction base="xs:string"><xs:enumeration value="2"/></xs:restriction></xs:simpleType>
+    </xs:attribute>
+    <xs:attribute name="default-lazy" type="xs:boolean"/>
+  </xs:complexType>
+
+  <xs:complexType name="includeType">
+    <xs:attribute name="file" type="xs:string"/>
+    <xs:attribute name="resource" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:complexType name="aliasType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="alias" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="beanType">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:element name="constructor" type="argumentsType"/>
+      <xs:element name="factory" type="factoryType"/>
+      <xs:element name="property" type="propertyType"/>
+      <xs:element name="call" type="callType"/>
+      <xs:element name="init" type="methodNameType"/>
+      <xs:element name="destroy" type="methodNameType"/>
+    </xs:choice>
+    <xs:attribute name="id" type="xs:string"/>
+    <xs:attribute name="class" type="xs:string" use="required"/>
+    <xs:attribute name="init-method" type="xs:string"/>
+    <xs:attribute name="destroy-method" type="xs:string"/>
+    <xs:attribute name="auto-close" type="autoClosePolicyType"/>
+    <xs:attribute name="scope" type="beanScopeType"/>
+    <xs:attribute name="ownership" type="beanOwnershipType"/>
+    <xs:attribute name="lazy" type="xs:boolean"/>
+    <xs:attribute name="depends-on" type="xs:string"/>
+    <xs:attribute name="replaces" type="xs:string"/>
+    <xs:attribute name="if-property" type="xs:string"/>
+    <xs:attribute name="if-value" type="xs:string"/>
+    <xs:attribute name="unless-property" type="xs:string"/>
+    <xs:attribute name="unless-value" type="xs:string"/>
+    <xs:attribute name="match-if-missing" type="xs:boolean"/>
+  </xs:complexType>
+
+
+  <xs:simpleType name="beanScopeType">
+    <xs:restriction base="xs:string"><xs:pattern value="[A-Za-z][A-Za-z0-9._-]*"/></xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="beanOwnershipType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="context"/>
+      <xs:enumeration value="caller"/>
+      <xs:enumeration value="external"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="autoClosePolicyType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="fallback"/>
+      <xs:enumeration value="before"/>
+      <xs:enumeration value="after"/>
+      <xs:enumeration value="never"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:complexType name="argumentsType">
+    <xs:sequence><xs:element name="arg" type="argumentType" minOccurs="0" maxOccurs="unbounded"/></xs:sequence>
+    <xs:attribute name="signature" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:complexType name="factoryType">
+    <xs:sequence><xs:element name="arg" type="argumentType" minOccurs="0" maxOccurs="unbounded"/></xs:sequence>
+    <xs:attribute name="class" type="xs:string"/>
+    <xs:attribute name="bean" type="xs:string"/>
+    <xs:attribute name="method" type="xs:string" use="required"/>
+    <xs:attribute name="signature" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:complexType name="propertyType">
+    <xs:choice minOccurs="0" maxOccurs="1"><xs:group ref="valueElements"/></xs:choice>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="value" type="xs:string"/>
+    <xs:attribute name="ref" type="xs:string"/>
+    <xs:attribute name="type" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:complexType name="callType">
+    <xs:sequence><xs:element name="arg" type="argumentType" minOccurs="0" maxOccurs="unbounded"/></xs:sequence>
+    <xs:attribute name="method" type="xs:string" use="required"/>
+    <xs:attribute name="signature" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:complexType name="methodNameType">
+    <xs:attribute name="method" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="containerValueType">
+    <xs:choice minOccurs="0" maxOccurs="1"><xs:group ref="valueElements"/></xs:choice>
+    <xs:attribute name="value" type="xs:string"/>
+    <xs:attribute name="ref" type="xs:string"/>
+    <xs:attribute name="type" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:complexType name="argumentType">
+    <xs:choice minOccurs="0" maxOccurs="1"><xs:group ref="valueElements"/></xs:choice>
+    <xs:attribute name="name" type="xs:string"/>
+    <xs:attribute name="index" type="xs:nonNegativeInteger"/>
+    <xs:attribute name="value" type="xs:string"/>
+    <xs:attribute name="ref" type="xs:string"/>
+    <xs:attribute name="type" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:group name="valueElements">
+    <xs:choice>
+      <xs:element name="value" type="literalType"/>
+      <xs:element name="ref" type="refType"/>
+      <xs:element name="supplier" type="supplierType"/>
+      <xs:element name="optional-ref" type="refType"/>
+      <xs:element name="constant" type="constantType"/>
+      <xs:element name="bean" type="beanType"/>
+      <xs:element name="list" type="collectionValueType"/>
+      <xs:element name="set" type="collectionValueType"/>
+      <xs:element name="map" type="mapType"/>
+      <xs:element name="properties" type="propertiesType"/>
+      <xs:element name="array" type="arrayType"/>
+      <xs:element name="optional" type="optionalType"/>
+      <xs:element name="null" type="emptyType"/>
+    </xs:choice>
+  </xs:group>
+
+  <xs:complexType name="literalType" mixed="true"><xs:attribute name="type" type="xs:string"/></xs:complexType>
+  <xs:complexType name="refType"><xs:attribute name="bean" type="xs:string" use="required"/></xs:complexType>
+  <xs:complexType name="supplierType"><xs:attribute name="ref" type="xs:string" use="required"/></xs:complexType>
+  <xs:complexType name="constantType">
+    <xs:attribute name="class" type="xs:string" use="required"/>
+    <xs:attribute name="field" type="xs:string" use="required"/>
+  </xs:complexType>
+  <xs:complexType name="emptyType"/>
+
+  <xs:complexType name="collectionValueType">
+    <xs:choice minOccurs="0" maxOccurs="unbounded"><xs:group ref="valueElements"/></xs:choice>
+    <xs:attribute name="immutable" type="xs:boolean"/>
+  </xs:complexType>
+
+  <xs:complexType name="arrayType">
+    <xs:choice minOccurs="0" maxOccurs="unbounded"><xs:group ref="valueElements"/></xs:choice>
+    <xs:attribute name="component-type" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:complexType name="optionalType">
+    <xs:choice minOccurs="0" maxOccurs="1"><xs:group ref="valueElements"/></xs:choice>
+  </xs:complexType>
+
+  <xs:complexType name="mapType">
+    <xs:sequence><xs:element name="entry" type="mapEntryType" minOccurs="0" maxOccurs="unbounded"/></xs:sequence>
+    <xs:attribute name="immutable" type="xs:boolean"/>
+  </xs:complexType>
+
+  <xs:complexType name="mapEntryType">
+    <xs:choice minOccurs="0" maxOccurs="2"><xs:group ref="valueElements"/></xs:choice>
+    <xs:attribute name="key" type="xs:string"/>
+    <xs:attribute name="key-ref" type="xs:string"/>
+    <xs:attribute name="key-type" type="xs:string"/>
+    <xs:attribute name="value" type="xs:string"/>
+    <xs:attribute name="value-ref" type="xs:string"/>
+    <xs:attribute name="value-type" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:complexType name="propertiesType">
+    <xs:sequence><xs:element name="property" type="propertiesEntryType" minOccurs="0" maxOccurs="unbounded"/></xs:sequence>
+    <xs:attribute name="immutable" type="xs:boolean"/>
+  </xs:complexType>
+  <xs:complexType name="propertiesEntryType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="value" type="xs:string" use="required"/>
+  </xs:complexType>
+</xs:schema>

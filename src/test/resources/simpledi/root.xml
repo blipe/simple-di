@@ -1,0 +1,4 @@
+<beans>
+  <include resource="child.xml"/>
+  <alias name="resourceRepo" alias="resourceAlias"/>
+</beans>

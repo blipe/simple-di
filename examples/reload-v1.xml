@@ -1,0 +1,5 @@
+<beans version="2">
+  <bean id="service" class="example.ReloadDemo$Service">
+    <constructor><arg name="version" value="v1"/></constructor>
+  </bean>
+</beans>

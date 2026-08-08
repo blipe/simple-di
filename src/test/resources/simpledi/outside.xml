@@ -1,0 +1,1 @@
+<beans version="2"><bean id="outside" class="java.lang.StringBuilder"/></beans>

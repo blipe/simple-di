@@ -1,0 +1,57 @@
+simple-di 2.5.0 verification
+============================
+
+Environment:
+- OpenJDK 21.0.10
+- Runtime dependencies: none
+- JDK module dependencies: java.base, java.xml
+- Explicit module: io.github.simpledi
+
+Results:
+- 119/119 adversarial integration tests passed (94 base-container tests plus 25 reload tests)
+- 20/20 final repeated runs passed: 2,380 test executions
+- every run includes 500 deterministic XML mutations and 100 random-byte parser cases
+- binary, source, and Javadoc JARs reproduced byte-for-byte in two independent release builds
+- Maven was not installed; equivalent javac/java/JAR/Javadoc gates were executed directly
+
+Primary gates:
+- ./test.sh
+- ./run-example.sh
+- ./run-reload-example.sh
+- repeated full-suite concurrency/lifecycle/parser-fuzz runs
+- reproducible binary, source, and Javadoc JAR construction
+- XSD compilation plus validation of normal, overlay, and reload example documents
+- Javadoc full doclint (excluding missing-comment warnings)
+- jar --describe-module and jdeps module-dependency inspection
+- separate named JPMS reload consumer using a package qualified-exported to io.github.simpledi
+- clean extraction of the final ZIP followed by rebuild, tests, examples, release, and artifact checksum comparison
+
+2.5 coverage:
+- complete candidate startup before one atomic generation publication
+- generation leases, graceful/timed/immediate/reject-busy retirement, independent shutdown policy, and forced lease diagnostics
+- prepared candidates, deployment inspection, stale-candidate rejection, and serialized concurrent reload attempts
+- revision-based no-op detection using frozen property resolutions and manager-keyed HMAC treatment of sensitive values
+- explicit pre-publication state handoff and rollback on handoff/listener/startup/validation failure
+- lease-owned caller prototype handles and cleanup-failure release guarantees
+- optional generation classloader ownership, early closeability checks, distinct-loader enforcement, candidate rejection cleanup, and real classloader collection
+- value-only reload failures proving that retained results/events/history do not retain plugin throwable classes
+- concurrent atomicity across 2,400 reader acquisitions and 40 replacements per full reload-suite execution
+- manager-close races with active reload work and already-running generation destruction
+- qualified JPMS exports with cached method-handle fast path and reflective fallback
+
+Retained coverage:
+- all 2.4 conditions, custom scopes, lifecycle interceptors, graph diff/explanation, and runtime snapshot behavior
+- all 2.3 exact signature, named/indexed argument, input, include sandbox, lifecycle event, security-limit, fuzz, ownership, and deterministic-release behavior
+- all 2.2 property-source, overlay, generic type, typed binding, parent/child, and structured validation behavior
+- all 2.1 concurrency, rollback, classloader unloading, prototype ownership, and deterministic-order behavior
+- all baseline constructor/factory/setter/call/value/conversion/lifecycle/XML/JPMS behavior
+
+Distribution:
+- dist/simple-di-2.5.0.jar
+- dist/simple-di-2.5.0-sources.jar
+- dist/simple-di-2.5.0-javadoc.jar
+- dist/SHA256SUMS
+
+Maven note:
+- pom.xml is configured for Java 21, -Xlint:all -Werror, both standalone suites, sources, Javadocs, and reproducible timestamps.
+- Maven execution depends on whether mvn is installed in the verification environment; the equivalent javac/java/release gates are always run directly.

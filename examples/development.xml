@@ -1,0 +1,5 @@
+<beans version="2">
+  <bean id="repository" replaces="repository" class="example.Demo$Repository">
+    <constructor><arg value="${db.url}"/></constructor>
+  </bean>
+</beans>
