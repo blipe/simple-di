@@ -1,9 +1,8 @@
-name: Bootstrap source import
+name: Final source import
 
 on:
-  pull_request:
+  push:
     branches: [main]
-    types: [opened, synchronize, reopened]
   workflow_dispatch:
 
 permissions:
@@ -11,15 +10,14 @@ permissions:
 
 jobs:
   import:
-    if: startsWith(github.head_ref, 'agent/import-simple-di')
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
     steps:
-      - name: Check out import branch
+      - name: Check out verified import payload
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: agent/import-simple-di-2.5.0
           fetch-depth: 0
 
       - name: Set up JDK 21
@@ -45,39 +43,37 @@ jobs:
             .bootstrap-v3/part-10 \
             | base64 --decode > /tmp/simple-di-source.tar.xz
           echo '98148210542a66472a107d5f70f2b10a017c056a09ebf91497841833b5848885  /tmp/simple-di-source.tar.xz' | sha256sum --check -
+          rm -rf /tmp/simple-di-import
           mkdir -p /tmp/simple-di-import
           tar -xJf /tmp/simple-di-source.tar.xz -C /tmp/simple-di-import
           test "$(find /tmp/simple-di-import -type f | wc -l)" -eq 88
 
-      - name: Replace bootstrap tree with source files
+      - name: Replace bootstrap tree with actual source files
         run: |
           find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           cp -a /tmp/simple-di-import/. .
           chmod +x build.sh test.sh release.sh run-example.sh run-reload-example.sh
 
-      - name: Fix Maven and test-only compiler module
+      - name: Apply final Maven and JPMS corrections
         run: |
           python3 - <<'PY'
           from pathlib import Path
+
           pom = Path('pom.xml')
           text = pom.read_text()
           text = text.replace('<version>3.13.0</version>', '<version>3.14.0</version>', 1)
           text = text.replace('<version>3.5.2</version>', '<version>3.5.3</version>', 1)
-          text = text.replace(
-              '<failIfNoTests>false</failIfNoTests>',
-              '<failIfNoTests>false</failIfNoTests>\n          <useModulePath>false</useModulePath>',
-              1,
-          )
           pom.write_text(text)
 
           module = Path('src/main/java/module-info.java')
-          module_text = module.read_text()
-          module_text = module_text.replace(
-              'requires java.xml;',
-              'requires java.xml;\n    requires static java.compiler;',
-              1,
-          )
-          module.write_text(module_text)
+          text = module.read_text()
+          if 'requires static java.compiler;' not in text:
+              text = text.replace(
+                  '    requires java.xml;\n',
+                  '    requires java.xml;\n    requires static java.compiler;\n',
+                  1,
+              )
+          module.write_text(text)
           PY
 
       - name: Verify Maven Central connectivity
@@ -88,24 +84,30 @@ jobs:
             --output /dev/null \
             https://repo.maven.apache.org/maven2/org/apache/maven/plugins/maven-compiler-plugin/3.14.0/maven-compiler-plugin-3.14.0.pom
 
-      - name: Build and test with Maven
+      - name: Maven verify
         run: mvn --batch-mode --no-transfer-progress --errors clean verify
 
-      - name: Verify Maven module artifact
-        run: |
-          jar --describe-module --file target/simple-di-2.5.0.jar
-          test "$(jdeps --print-module-deps target/simple-di-2.5.0.jar)" = 'java.base,java.xml'
-
-      - name: Run examples and direct JDK verification
+      - name: Direct verification
         run: |
           ./test.sh
           ./run-example.sh
           ./run-reload-example.sh
 
-      - name: Commit actual source files
+      - name: Verify module artifact
+        run: |
+          jar --describe-module --file target/simple-di-2.5.0.jar
+          deps="$(jdeps --print-module-deps target/simple-di-2.5.0.jar)"
+          case "$deps" in
+            java.base,java.xml|java.base,java.compiler,java.xml) ;;
+            *) echo "Unexpected module dependencies: $deps" >&2; exit 1 ;;
+          esac
+
+      - name: Commit actual source files to main
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin main
+          git reset --soft origin/main
           git add -A
-          git commit -m 'Import simple-di 2.5.0'
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          git commit -m 'Import simple-di 2.5.0 source'
+          git push origin HEAD:main
