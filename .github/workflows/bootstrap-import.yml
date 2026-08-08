@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   import:
+    if: github.event.head_commit.message != 'Import simple-di 2.5.0 source'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -107,6 +108,8 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git fetch origin main
+          rm -rf .github/workflows
+          git checkout origin/main -- .github/workflows
           git reset --soft origin/main
           git add -A
           git commit -m 'Import simple-di 2.5.0 source'
