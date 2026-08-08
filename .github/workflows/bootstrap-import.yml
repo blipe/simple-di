@@ -95,8 +95,8 @@ jobs:
 
       - name: Verify module artifact
         run: |
-          jar --describe-module --file target/simple-di-2.5.0.jar
-          deps="$(jdeps --print-module-deps target/simple-di-2.5.0.jar)"
+          jar --describe-module --file target/simple-di.jar
+          deps="$(jdeps --print-module-deps target/simple-di.jar)"
           case "$deps" in
             java.base,java.xml|java.base,java.compiler,java.xml) ;;
             *) echo "Unexpected module dependencies: $deps" >&2; exit 1 ;;
